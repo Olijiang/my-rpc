@@ -13,7 +13,7 @@ import rpc.config.RpcProperties;
 import rpc.entity.RpcRequest;
 import rpc.entity.ServiceProfile;
 import rpc.exception.ServiceNotFoundException;
-import rpc.loadbalance.ServiceListProfile;
+import rpc.entity.ServiceListProfile;
 
 import java.net.InetAddress;
 import java.util.*;

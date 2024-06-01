@@ -1,4 +1,4 @@
-package rpc.loadbalance;
+package rpc.entity;
 
 import lombok.Data;
 import rpc.entity.ServiceProfile;

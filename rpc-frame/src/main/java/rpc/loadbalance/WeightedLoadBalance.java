@@ -2,6 +2,7 @@ package rpc.loadbalance;
 
 import lombok.extern.slf4j.Slf4j;
 import rpc.entity.RpcRequest;
+import rpc.entity.ServiceListProfile;
 import rpc.entity.ServiceProfile;
 
 import java.util.ArrayList;

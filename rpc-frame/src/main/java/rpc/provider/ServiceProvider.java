@@ -5,7 +5,7 @@ import rpc.annotation.RpcService;
 /**
  * @Author: ZGB
  * @version: 1.0
- * @Description: 提供 和 收集 本应用中的服务信息
+ * @Description: 服务端的服务搜集和提供者, 在启动的时候收集服务, 收到rpc请求时提供服务
  * @Date: 2024/05/30/16:20
  */
 public interface ServiceProvider {

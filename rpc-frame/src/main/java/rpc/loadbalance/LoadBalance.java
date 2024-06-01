@@ -1,9 +1,8 @@
 package rpc.loadbalance;
 
 import rpc.entity.RpcRequest;
+import rpc.entity.ServiceListProfile;
 import rpc.entity.ServiceProfile;
-
-import java.util.List;
 
 /**
  * @Author: ZGB
