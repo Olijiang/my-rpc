@@ -1,0 +1,4 @@
+rpc:
+  register-address: "43.139.31.192:2181"
+  server-port: 8888
+  serializer-algorithm: "Kryo"
