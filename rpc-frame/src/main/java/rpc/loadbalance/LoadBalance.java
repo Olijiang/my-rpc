@@ -1,7 +1,7 @@
 package rpc.loadbalance;
 
 import rpc.entity.RpcRequest;
-import rpc.entity.ServiceListProfile;
+import rpc.entity.ServiceProfileList;
 import rpc.entity.ServiceProfile;
 
 /**
@@ -12,7 +12,7 @@ import rpc.entity.ServiceProfile;
  */
 public interface LoadBalance {
 
-    ServiceProfile select(RpcRequest rpcRequest, ServiceListProfile serviceListProfile);
+    ServiceProfile select(RpcRequest rpcRequest, ServiceProfileList serviceProfileList);
 
     void callFailed(RpcRequest rpcRequest, ServiceProfile serviceProfile);
 

@@ -16,7 +16,7 @@ import rpc.loadbalance.LoadBalance;
 public class Config {
     @Bean
     public LoadBalance loadBalance() {
-        return new WeightedLoadBalance();
+        return new CreditBalancer();
     }
 
 }

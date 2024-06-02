@@ -1,7 +1,7 @@
 package rpc.loadbalance;
 
 import rpc.entity.RpcRequest;
-import rpc.entity.ServiceListProfile;
+import rpc.entity.ServiceProfileList;
 import rpc.entity.ServiceProfile;
 
 import java.util.List;
@@ -15,17 +15,17 @@ import java.util.List;
 public abstract class AbstractLoadBalance implements LoadBalance {
 
     @Override
-    public ServiceProfile select(RpcRequest rpcRequest, ServiceListProfile serviceListProfile) {
-        List<ServiceProfile> serviceProfiles = serviceListProfile.getServiceProfiles();
+    public ServiceProfile select(RpcRequest rpcRequest, ServiceProfileList serviceProfileList) {
+        List<ServiceProfile> serviceProfiles = serviceProfileList.getServiceProfiles();
         if (serviceProfiles.isEmpty()) {
             return null;
         }
         if (serviceProfiles.size() == 1) {
             return serviceProfiles.get(0);
         }
-        return doSelect(rpcRequest, serviceListProfile);
+        return doSelect(rpcRequest, serviceProfileList);
     }
 
 
-    protected abstract ServiceProfile doSelect(RpcRequest rpcRequest, ServiceListProfile serviceListProfile);
+    protected abstract ServiceProfile doSelect(RpcRequest rpcRequest, ServiceProfileList serviceProfileList);
 }

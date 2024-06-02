@@ -13,7 +13,7 @@ import rpc.config.RpcProperties;
 import rpc.entity.RpcRequest;
 import rpc.entity.ServiceProfile;
 import rpc.exception.ServiceNotFoundException;
-import rpc.entity.ServiceListProfile;
+import rpc.entity.ServiceProfileList;
 
 import java.net.InetAddress;
 import java.util.*;
@@ -36,7 +36,7 @@ public class CuratorUtils {
     private static final Map<String, Map<String, Map<String, List<ServiceProfile>>>> SERVICE_MAP = new ConcurrentHashMap<>();
 
     // 根据服务信息缓存满足要求的服务
-    private static final Map<String, ServiceListProfile> SERVICE_LIST_PROFILE_MAP = new ConcurrentHashMap<>();
+    private static final Map<String, ServiceProfileList> SERVICE_PROFILE_LIST_MAP = new ConcurrentHashMap<>();
 
     public static CuratorFramework zkClient;
     public static Integer MAX_CREDIT = 32;
@@ -66,6 +66,7 @@ public class CuratorUtils {
 
     /**
      * 获取这个 serviceName 对于的服务节点
+     *
      * @param serviceName 服务名称
      * @return 服务信息的列表  ip:port;version;group;weight   credit
      */
@@ -90,13 +91,21 @@ public class CuratorUtils {
 
     /**
      * 获取这个
+     *
      * @param serviceName 服务名
      * @return 获取服务的 map , 一级 key为 version, 二级 key 为 group
      */
     public static Map<String, Map<String, List<ServiceProfile>>> getServerMap(String serviceName) {
-        if (SERVICE_MAP.containsKey(serviceName)) {
-            return SERVICE_MAP.get(serviceName);
-        }
+        return SERVICE_MAP.computeIfAbsent(serviceName, (k) -> buildServiceMap(serviceName));
+    }
+
+    /**
+     * 生成一个服务的 serviceMap
+     *
+     * @param serviceName 服务名
+     * @return serviceMap
+     */
+    public static Map<String, Map<String, List<ServiceProfile>>> buildServiceMap(String serviceName) {
         List<String> children = getChildrenNodes(serviceName);
         Map<String, Map<String, List<ServiceProfile>>> versionMap = new ConcurrentHashMap<>();
         for (String child : children) {
@@ -107,47 +116,52 @@ public class CuratorUtils {
             groupMap.put(profile.getGroup(), ipList);
             versionMap.put(profile.getVersion(), groupMap);
         }
-        SERVICE_MAP.put(serviceName, versionMap);
         return versionMap;
     }
 
     /**
-     * 根据请求对象拿到满足要求的 服务列表封装对象
+     * 根据请求对象拿到满足要求的 服务列表封装对象,
+     * 如果服务信息发送了变化, 应该返回一个新的 ServiceProfileList, 否则总是返回同一个 ServiceProfileList
+     *
      * @param request 请求对象
      * @return ServiceListProfile
      */
-    public static ServiceListProfile getService(RpcRequest request) {
+    public static ServiceProfileList getService(RpcRequest request) {
+        String key = request.getServiceKey();
+        return SERVICE_PROFILE_LIST_MAP.computeIfAbsent(key, (k) -> buildServiceList(request));
+    }
+
+    /**
+     * 生成满足 request 要求的服务列表
+     *
+     * @param request 请求对象
+     * @return ServiceListProfile
+     */
+    public static ServiceProfileList buildServiceList(RpcRequest request) {
         String serviceName = request.getInterfaceName();
         String version = request.getVersion();
         String group = request.getGroup();
-        String key = request.getInterfaceName() + ":" + request.getVersion() + ":" + request.getGroup();
-        if (SERVICE_LIST_PROFILE_MAP.containsKey(key)){
-            ServiceListProfile serviceListProfile = SERVICE_LIST_PROFILE_MAP.get(key);
-            serviceListProfile.setCreditChange(false);
-            serviceListProfile.setWeightChange(false);
-            return serviceListProfile;
-        }else {
-            // 根据服务名获取服务
-            Map<String, Map<String, List<ServiceProfile>>> serviceMap = getServerMap(serviceName);
-            if (serviceMap == null) throw new RuntimeException("No " + serviceName + " found");
-            // 找对应版本的服务
-            Map<String, List<ServiceProfile>> versionMap = serviceMap.get(version);
-            if (versionMap == null) {
-                String msg = "Service not found:" + serviceName + " found" + ((version.equals("-1")) ? "" : " with version " + version);
-                throw new ServiceNotFoundException(msg);
-            }
-            ServiceListProfile serviceListProfile = new ServiceListProfile();
-            // 先找同组服务
-            List<ServiceProfile> profilesInGroup = versionMap.get(group);
-            if (profilesInGroup == null || profilesInGroup.isEmpty()) {
-                // 没有同组的服务, 找其他组的
-                profilesInGroup = versionMap.values().stream().flatMap(List::stream).toList();
-                if (profilesInGroup.isEmpty()) throw new ServiceNotFoundException("Service not found:" + serviceName);
-            }
-            serviceListProfile.setServiceProfiles(profilesInGroup);
-            SERVICE_LIST_PROFILE_MAP.put(key, serviceListProfile);
-            return serviceListProfile;
+        // 根据服务名获取服务
+        Map<String, Map<String, List<ServiceProfile>>> serviceMap = getServerMap(serviceName);
+        if (serviceMap == null) throw new RuntimeException("No " + serviceName + " found");
+        // 找对应版本的服务
+        Map<String, List<ServiceProfile>> versionMap = serviceMap.get(version);
+        if (versionMap == null) {
+            String msg = "Service not found:" + serviceName + " found" + ((version.equals("-1")) ? "" : " with version " + version);
+            throw new ServiceNotFoundException(msg);
         }
+
+        // 先找同组服务
+        List<ServiceProfile> profilesInGroup = versionMap.get(group);
+        if (profilesInGroup == null || profilesInGroup.isEmpty()) {
+            // 没有同组的服务, 找其他组的
+            profilesInGroup = versionMap.values().stream().flatMap(List::stream).toList();
+            if (profilesInGroup.isEmpty()) throw new ServiceNotFoundException("Service not found:" + serviceName);
+        }
+        ServiceProfileList serviceProfileList = new ServiceProfileList();
+        serviceProfileList.setServiceProfiles(profilesInGroup);
+        serviceProfileList.setServiceKey(request.getServiceKey());
+        return serviceProfileList;
     }
 
     public static ServiceProfile parserService(String info) {
@@ -160,7 +174,7 @@ public class CuratorUtils {
         String version = split[1];
         String group = split[2];
         Integer weight = Integer.parseInt(split[3]);
-        Integer credit = 32;
+        Integer credit = MAX_CREDIT;
         return new ServiceProfile(ip, port, version, group, weight, credit);
     }
 

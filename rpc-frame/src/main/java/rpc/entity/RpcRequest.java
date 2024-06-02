@@ -30,4 +30,8 @@ public class RpcRequest extends Message{
     public RpcRequest() {
         this.sequenceId = counter.getAndIncrement();
     }
+
+    public String getServiceKey(){
+        return interfaceName + ":" + version + ":" + group;
+    }
 }

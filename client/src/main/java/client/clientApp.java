@@ -1,6 +1,7 @@
 package client;
 
 import client.service.TestHello;
+import org.apache.dubbo.rpc.cluster.loadbalance.RoundRobinLoadBalance;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -20,6 +21,7 @@ public class clientApp {
         for (int i = 0; i < 20; i++) {
             bean.test();
         }
+
     }
 
 }

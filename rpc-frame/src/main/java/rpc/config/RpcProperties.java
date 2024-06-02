@@ -6,6 +6,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+import rpc.annotation.EnableRpcServer;
 
 import javax.annotation.PostConstruct;
 import java.util.Arrays;
@@ -22,6 +23,9 @@ import java.util.List;
 @Component
 @ConfigurationProperties(prefix = "rpc")
 public class RpcProperties {
+
+    @Autowired
+    ApplicationContext context;
 
     /**
      * 注册中心地址, 默认127.0.0.1：2181
@@ -44,6 +48,7 @@ public class RpcProperties {
 
     public static Integer SERVER_PORT = 21818;
 
+
     @PostConstruct
     public void init() {
         if (this.serverPort != null) SERVER_PORT = this.serverPort;
@@ -52,6 +57,15 @@ public class RpcProperties {
         if (this.serializerAlgorithm != null && !this.serializerAlgorithm.isEmpty())
             SERIALIZER_ALGORITHM = this.serializerAlgorithm;
 
+        String portKey = "--rpc.server.port=";
+        String bootArgs = context.getEnvironment().getProperty("sun.java.command");
+        String[] sourceArgs = bootArgs.split(" ");
+        for (String arg : sourceArgs) {
+            if (arg.startsWith(portKey)) {
+                String port = arg.substring(portKey.length());
+                SERVER_PORT = Integer.parseInt(port);
+            }
+        }
 
     }
 }

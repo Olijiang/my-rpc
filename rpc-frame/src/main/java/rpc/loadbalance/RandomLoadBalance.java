@@ -1,7 +1,7 @@
 package rpc.loadbalance;
 
 import rpc.entity.RpcRequest;
-import rpc.entity.ServiceListProfile;
+import rpc.entity.ServiceProfileList;
 import rpc.entity.ServiceProfile;
 
 import java.util.List;
@@ -15,9 +15,9 @@ import java.util.Random;
  */
 public class RandomLoadBalance extends AbstractLoadBalance {
     @Override
-    protected ServiceProfile doSelect(RpcRequest rpcRequest, ServiceListProfile serviceListProfile) {
+    protected ServiceProfile doSelect(RpcRequest rpcRequest, ServiceProfileList serviceProfileList) {
         Random random = new Random();
-        List<ServiceProfile> serviceProfiles = serviceListProfile.getServiceProfiles();
+        List<ServiceProfile> serviceProfiles = serviceProfileList.getServiceProfiles();
         return serviceProfiles.get(random.nextInt(serviceProfiles.size()));
     }
 
