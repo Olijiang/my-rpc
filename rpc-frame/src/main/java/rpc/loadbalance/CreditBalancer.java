@@ -23,6 +23,7 @@ public class CreditBalancer extends AbstractLoadBalance {
 
 
 
+
     /**
      * 记录当前位置的使用量
      */
@@ -47,7 +48,7 @@ public class CreditBalancer extends AbstractLoadBalance {
             int use = useCounter.get();
             int pos = posCounter.get();
             ServiceProfile curService = serviceProfiles.get(pos);
-            if (curService.getCredit() < use) {
+            if (use < curService.getCredit()) {
                 if (useCounter.compareAndSet(use, use + 1)) {
                     serviceProfile = curService;
                 }
@@ -60,7 +61,7 @@ public class CreditBalancer extends AbstractLoadBalance {
             }
         }
         serviceProfile.setLoadBalance(this);
-        log.warn("负载均衡:{}, {}, {}", posCounter.get(), size, serviceProfiles);
+//        log.warn("负载均衡:{}, {}, {}", posCounter.get(), size, serviceProfiles);
         return serviceProfile;
     }
 
@@ -108,7 +109,7 @@ public class CreditBalancer extends AbstractLoadBalance {
         ServiceProfileList serviceProfileList = new ServiceProfileList();
         List<ServiceProfile> list = new ArrayList<>();
         list.add(new ServiceProfile("127.0.0.1", 111, "-1", "de", 5, 255));
-        list.add(new ServiceProfile("127.0.0.2", 222, "-1", "dede", 5, 255));
+        list.add(new ServiceProfile("127.0.0.2", 222, "-1", "dede", 5, 3));
         serviceProfileList.setServiceProfiles(list);
 
         CreditBalancer balancer = new CreditBalancer();
