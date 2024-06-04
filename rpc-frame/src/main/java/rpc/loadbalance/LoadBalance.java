@@ -18,4 +18,5 @@ public interface LoadBalance {
 
     void callSuccess(RpcRequest rpcRequest, ServiceProfile serviceProfile);
 
+    void close();
 }

@@ -4,7 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import rpc.entity.RpcRequest;
 import rpc.entity.ServiceProfileList;
 import rpc.entity.ServiceProfile;
+import rpc.exception.ServiceNotFoundException;
 
+import javax.annotation.PreDestroy;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,13 +22,17 @@ public class WeightedLoadBalance extends AbstractLoadBalance {
 
     private final Map<String, AtomicInteger> counters = new ConcurrentHashMap<>();
 
+    /**
+     * 调用失败时加入这个 的黑名单
+     */
+    private final ExpiringSet<ServiceProfile> blackList = new ExpiringSet<>(3000);
     // 根据服务权重建立一个map表
     private final Map<ServiceProfileList, List<Integer>> weightMap = new ConcurrentHashMap<>();
 
     /**
      * 清理的循环周期
      */
-    private final int cycle = 65536;
+    private final int clearCycle = 65536;
 
     /**
      * 清理的过去时间
@@ -40,11 +46,20 @@ public class WeightedLoadBalance extends AbstractLoadBalance {
         AtomicInteger atomicInteger = counters.computeIfAbsent(key, (k) -> new AtomicInteger(0));
         List<Integer> weightList = weightMap.computeIfAbsent(serviceProfileList, this::builderWeightTable);
         int size = weightList.size();
-        int index = atomicInteger.getAndIncrement();
+        ServiceProfile serviceProfile = null;
         List<ServiceProfile> serviceProfiles = serviceProfileList.getServiceProfiles();
-        log.debug("负载均衡:{}, {}, {}, {}", index, size, weightList, serviceProfiles);
-        if (index == cycle) clear();
-        return serviceProfiles.get(weightList.get(index % size));
+        int cycleNum = 0;
+        while (cycleNum < size && (serviceProfile == null || blackList.containsKey(serviceProfile))) {
+            cycleNum++;
+            int curCnt = atomicInteger.getAndIncrement();
+            if (curCnt == clearCycle) clear();
+            serviceProfile = serviceProfiles.get(weightList.get(curCnt % size));
+        }
+        if (cycleNum > size || serviceProfile == null) throw new ServiceNotFoundException("没有可用的服务");
+        serviceProfile.setLoadBalance(this);
+        log.debug("负载均衡:{}", serviceProfile);
+
+        return serviceProfile;
     }
 
     /**
@@ -75,9 +90,14 @@ public class WeightedLoadBalance extends AbstractLoadBalance {
         }
     }
 
+    @PreDestroy
+    public void close() {
+        blackList.shutdown();
+    }
+
     @Override
     public void callFailed(RpcRequest rpcRequest, ServiceProfile serviceProfile) {
-
+        blackList.add(serviceProfile);
     }
 
     @Override

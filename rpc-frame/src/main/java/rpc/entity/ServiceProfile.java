@@ -3,6 +3,8 @@ package rpc.entity;
 import lombok.Data;
 import rpc.loadbalance.LoadBalance;
 
+import java.util.Objects;
+
 /**
  * @author Snion
  * @version 1.0
@@ -45,7 +47,19 @@ public class ServiceProfile {
         this.weight = weight;
     }
 
-    public void updateTimeStamp(){
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ServiceProfile that)) return false;
 
+        if (port != that.port) return false;
+        return Objects.equals(ip, that.ip);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = ip != null ? ip.hashCode() : 0;
+        result = 31 * result + port;
+        return result;
     }
 }

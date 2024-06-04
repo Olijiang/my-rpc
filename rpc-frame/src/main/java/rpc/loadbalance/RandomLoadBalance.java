@@ -30,4 +30,9 @@ public class RandomLoadBalance extends AbstractLoadBalance {
     public void callSuccess(RpcRequest rpcRequest, ServiceProfile serviceProfile) {
 
     }
+
+    @Override
+    public void close() {
+
+    }
 }

@@ -12,4 +12,5 @@ public interface RpcClient {
 
     Object SendRequest(RpcRequest rpcRequest) throws Throwable;
 
+    void close();
 }

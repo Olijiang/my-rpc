@@ -57,7 +57,7 @@ public class NettyClient implements RpcClient {
     }
 
     public Channel getChannel(InetSocket socket) {
-        return channels.computeIfAbsent(socket, socket1 -> initChannel(socket));
+        return channels.computeIfAbsent(socket, this::initChannel);
     }
 
     @Override
@@ -83,12 +83,13 @@ public class NettyClient implements RpcClient {
                 // 服务没有找到就不用重试了
                 throw e;
             } catch (Exception e) {
-                String msg = "An exception occurred while calling the service: " + rpcRequest.getInterfaceName() + ", with the reason being: " + e.getMessage();
+                String msg = "An exception occurred while calling the service: " + rpcRequest.getInterfaceName() + ", caused by: " + e.getMessage();
                 throwable = new RuntimeException(msg);
             }
             if (promise.isSuccess()) return promise.getNow();
             else {
-                if (profile != null) profile.getLoadBalance().callFailed(rpcRequest, profile);
+                if (profile != null && profile.getLoadBalance() != null)
+                    profile.getLoadBalance().callFailed(rpcRequest, profile);
                 log.warn(throwable.getMessage());
             }
             cur++;
@@ -148,6 +149,8 @@ public class NettyClient implements RpcClient {
         for (Channel channel : channels.values()) {
             channel.close();
         }
+        eventExecutor.shutdownGracefully();
+        System.out.println("nettyClient 关闭");
     }
 
     public static void main(String[] args) {
