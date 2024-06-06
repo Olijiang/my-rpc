@@ -1,10 +1,8 @@
 package rpc.loadbalance;
 
-import org.checkerframework.checker.units.qual.K;
-import rpc.entity.ServiceProfile;
+import rpc.util.DaemonThreadFactory;
 
-import java.util.LinkedList;
-import java.util.List;
+import javax.annotation.PreDestroy;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -28,7 +26,7 @@ public class ExpiringSet<V> {
         this.set = ConcurrentHashMap.newKeySet();
         this.queue = new ConcurrentLinkedDeque<>();
         this.expirationTimeMillis = expirationTimeMillis;
-        this.scheduler = Executors.newSingleThreadScheduledExecutor();
+        this.scheduler = Executors.newSingleThreadScheduledExecutor(new DaemonThreadFactory("expiringSet-scheduler"));
         startCleanupTask();
     }
 
@@ -53,6 +51,7 @@ public class ExpiringSet<V> {
         }, expirationTimeMillis, 1000, TimeUnit.MILLISECONDS);
     }
 
+    @PreDestroy
     public void shutdown() {
         scheduler.shutdown();
         try {

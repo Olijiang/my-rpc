@@ -2,15 +2,11 @@ package rpc.config;
 
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-import rpc.annotation.EnableRpcServer;
 
 import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * @Author: ZGB

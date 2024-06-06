@@ -2,14 +2,17 @@ package rpc.loadbalance;
 
 import lombok.extern.slf4j.Slf4j;
 import rpc.entity.RpcRequest;
-import rpc.entity.ServiceProfileList;
 import rpc.entity.ServiceProfile;
+import rpc.entity.ServiceProfileList;
 import rpc.exception.ServiceNotFoundException;
+import rpc.util.DaemonThreadFactory;
 
 import javax.annotation.PreDestroy;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,7 +40,7 @@ public class CreditBalancer extends AbstractLoadBalance {
      */
     private final Map<String, AtomicInteger> useMap = new ConcurrentHashMap<>();
 
-    private final ExecutorService worker = Executors.newFixedThreadPool(1);
+    private final ExecutorService worker = Executors.newFixedThreadPool(1, new DaemonThreadFactory("creditBalancer-worker"));
 
 
     @Override
@@ -58,14 +61,17 @@ public class CreditBalancer extends AbstractLoadBalance {
                 int pos = use % size;
                 ServiceProfile curService = serviceProfiles.get(pos);
                 int level = use / size;
+
                 if (usedSet.contains(curService)) continue;
                 if (level < curService.getCredit()) serviceProfile = curService;
                 else {
                     usedSet.add(curService);
-                    // 重置服务
-                    if (usedSet.size() == size) cycleNum = 0;
-                    if (useCounter.compareAndSet(use + 1, 0)) usedSet.clear();
                 }
+            }
+            if (usedSet.size() == size) {
+                log.info("reset usedSet");
+                cycleNum = 0;
+                if (useCounter.compareAndSet(use + 1, 0)) usedSet.clear();
             }
         }
         if (cycleNum > size || serviceProfile == null) throw new ServiceNotFoundException("没有可用的服务");
@@ -93,7 +99,7 @@ public class CreditBalancer extends AbstractLoadBalance {
     }
 
     /**
-     * 调用成功时信仰加 1
+     * 调用成功时信用加 1
      *
      * @param rpcRequest
      * @param serviceProfile
@@ -112,7 +118,6 @@ public class CreditBalancer extends AbstractLoadBalance {
     public void close() {
         worker.shutdown();
         blackList.shutdown();
-        System.out.println("loadbalance 关闭");
     }
 
     public static void main(String[] args) {

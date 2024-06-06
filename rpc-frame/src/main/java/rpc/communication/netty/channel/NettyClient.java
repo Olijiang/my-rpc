@@ -1,10 +1,7 @@
 package rpc.communication.netty.channel;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -23,6 +20,7 @@ import rpc.entity.RpcRequest;
 import rpc.entity.ServiceProfile;
 import rpc.exception.ServiceNotFoundException;
 import rpc.registry.ServiceDiscovery;
+import rpc.util.DaemonThreadFactory;
 
 import javax.annotation.PreDestroy;
 import java.util.Map;
@@ -53,7 +51,7 @@ public class NettyClient implements RpcClient {
 
     public NettyClient(ServiceDiscovery serviceDiscovery) {
         this.serviceDiscovery = serviceDiscovery;
-        this.eventExecutor = new DefaultEventExecutor();
+        this.eventExecutor = new DefaultEventExecutor(new DaemonThreadFactory("promise-pool"));
     }
 
     public Channel getChannel(InetSocket socket) {
@@ -109,6 +107,7 @@ public class NettyClient implements RpcClient {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.channel(NioSocketChannel.class);
         bootstrap.group(worker);
+        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000);
         bootstrap.handler(new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel ch) {
@@ -120,6 +119,7 @@ public class NettyClient implements RpcClient {
                         if (event.state() == IdleState.WRITER_IDLE) {
                             log.info("关闭连接：{}", ctx.channel());
                             ctx.channel().close();
+                            worker.shutdownGracefully();
                             channels.remove(socket);
                         }
                     }
@@ -138,6 +138,7 @@ public class NettyClient implements RpcClient {
                 channels.remove(socket);
             });
         } catch (Exception e) {
+            worker.shutdownGracefully();
             throw new RuntimeException(e.getMessage());
         }
         return channel;
@@ -150,7 +151,7 @@ public class NettyClient implements RpcClient {
             channel.close();
         }
         eventExecutor.shutdownGracefully();
-        System.out.println("nettyClient 关闭");
+        log.info("nettyClient close");
     }
 
     public static void main(String[] args) {

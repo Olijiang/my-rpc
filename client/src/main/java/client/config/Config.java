@@ -3,7 +3,6 @@ package client.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import rpc.loadbalance.CreditBalancer;
-import rpc.loadbalance.WeightedLoadBalance;
 import rpc.loadbalance.LoadBalance;
 
 /**
